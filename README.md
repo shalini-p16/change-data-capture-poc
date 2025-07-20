@@ -5,6 +5,9 @@ Capture every change to the `commerce.products` and `commerce.users` tables in a
 
 ---
 
+## Architecture Diagram
+![Architecture](./docs/architecture.png)
+
 ## High-Level Architecture
 - **Source Database:** PostgreSQL (`commerce.products`, `commerce.users`)
 - **CDC Capture:** Debezium (via Kafka Connect source connector)
