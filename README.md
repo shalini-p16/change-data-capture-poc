@@ -111,6 +111,92 @@ Assuming your CDC data includes:
   - Insert new row with `effective_from = ts_ms`
 ```
 
+## 🌐 Web UIs
+
+The following web UIs are available for monitoring and interacting with the project components:
+
+## Web UIs
+
+| Service        | URL                                         | Username        | Password        |
+|----------------|--------------------------------------------|-----------------|-----------------|
+| Kafka (AKHQ)   | [http://localhost:8080](http://localhost:8080) | `not required` | `not required` |
+| PgAdmin        | [http://localhost:8082](http://localhost:8082) | `pgadmin@local` | `admin`         |
+| MinIO          | [http://localhost:9001](http://localhost:9001) | `minioadmin`    | `minioadmin`    |
+
+--
+
+### PgAdmin Database Connection Details
+
+To create a new database connection in **PgAdmin**, use the following parameters:
+
+| Parameter      | Value         |
+|----------------|---------------|
+| Hostname       | `postgres`    |
+| Port           | `5432`        |
+| Database Name  | `commerce_db` |
+| Username       | `cdc_user`    |
+| Password       | `cdc_password` |
+
+--
+
+## Docker Components
+
+| Component         | Image                                  | Port(s) Exposed     | Description                                    |
+|-------------------|---------------------------------------|---------------------|------------------------------------------------|
+| PostgreSQL        | `postgres:14`                         | `5432`              | Source database for CDC                        |
+| Kafka Broker      | `confluentinc/cp-kafka:7.0.1`          | `9092`              | Kafka broker to stream CDC events              |
+| Zookeeper         | `confluentinc/cp-zookeeper:7.0.1`      | `2181`              | Coordinates Kafka brokers                      |
+| Kafka Connect     | `confluentinc/cp-kafka-connect:7.0.1`  | `8083`              | Runs Debezium and S3 Sink connectors           |
+| Debezium Connector| `debezium/connect:2.3`                | (inside Kafka Connect) | Captures CDC events from Postgres           |
+| AKHQ (Kafka UI)   | `tchiotludo/akhq:latest`              | `8080`              | Web UI for Kafka topic monitoring              |
+| PgAdmin           | `dpage/pgadmin4:latest`               | `8082`              | Web UI for Postgres                            |
+| MinIO             | `minio/minio:latest`                  | `9000, 9001`        | S3-compatible storage                          |
+
+
+## Startup Steps
+
+Follow these steps to start the entire data pipeline:
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/change-data-capture-poc.git
+   cd change-data-capture-poc
+   ```
+
+2. **Start Docker Containers**
+    - Ensure you have Docker and Docker Compose installed.
+    - Run the following command:
+    ```bash
+    docker-compose up -d
+
+3. **Verify Services**
+  - Access the Kafka UI (AKHQ): http://localhost:8080
+  - Access PgAdmin: http://localhost:8082
+  - Access MinIO: http://localhost:9001
+
+4. **Configure PgAdmin**
+
+5. **Deploy Kafka Connectors**
+    - Register the Debezium Connector:
+    ```bash
+    curl -X POST -H "Content-Type: application/json" \
+--data @connectors/postgres-source.json \
+http://localhost:8083/connectors 
+```
+
+6. **Register the S3 Sink Connector**
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+--data @connectors/s3-sink.json \
+http://localhost:8083/connectors
+```
+
+7.  **Check S3 Data**
+
+
+
+
 
 
 
