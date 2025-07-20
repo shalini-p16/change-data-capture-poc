@@ -53,8 +53,10 @@ Capture every change to the `commerce.products` and `commerce.users` tables in a
   }
 }```
 
+---
+
 ## 3. Configure Kafka Connect S3 Sink
-- Install S3 sink connector (Confluent or open-source).
+- Install the S3 sink connector (Confluent or open-source).
 
 **Example config (`s3-sink.json`):**
 ```json
@@ -77,11 +79,13 @@ Capture every change to the `commerce.products` and `commerce.users` tables in a
   }
 }```
 
+
 ## Resulting S3 paths
 ```plaintext
 s3://my-cdc-bucket/cdc_data/cdc.commerce.products/...
 s3://my-cdc-bucket/cdc_data/cdc.commerce.users/...
 ```
+
 
 ## 4. Read Data from S3 with DuckDB
 - DuckDB supports reading Parquet/CSV files directly from S3.
@@ -90,10 +94,11 @@ s3://my-cdc-bucket/cdc_data/cdc.commerce.users/...
 ## 5. Apply SCD2 Logic in DuckDB
 
 Assuming your CDC data includes:
+```
 - `op` or `__op` (insert/update/delete indicator)
 - `ts_ms` (change timestamp)
 - Primary key (`id`)
-
+```
 
 ## SCD2 Approach
 
