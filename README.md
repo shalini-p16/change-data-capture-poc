@@ -80,12 +80,12 @@ Capture every change to the `commerce.products` and `commerce.users` tables in a
 }```
 
 
-## Resulting S3 paths
+**Resulting S3 paths**
 ```plaintext
 s3://my-cdc-bucket/cdc_data/cdc.commerce.products/...
 s3://my-cdc-bucket/cdc_data/cdc.commerce.users/...
 ```
-
+---
 
 ## 4. Read Data from S3 with DuckDB
 - DuckDB supports reading Parquet/CSV files directly from S3.
@@ -100,13 +100,13 @@ Assuming your CDC data includes:
 - Primary key (`id`)
 ```
 
-## SCD2 Approach
-
+**SCD2 Approach**
+```
 - Maintain `effective_from`, `effective_to`, and `is_current` columns.
 - On update:
   - Close old record (`effective_to = ts_ms`, `is_current = false`)
   - Insert new row with `effective_from = ts_ms`
-
+```
 
 
 
