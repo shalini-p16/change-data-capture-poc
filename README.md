@@ -33,60 +33,72 @@ Capture every change to the `commerce.products` and `commerce.users` tables in a
 
 **Example Debezium connector config (`postgres-source.json`):**
 ```json
-{
-  "name": "postgres-commerce-cdc",
-  "config": {
-    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
-    "plugin.name": "pgoutput",
-    "database.hostname": "postgres",
-    "database.port": "5432",
-    "database.user": "cdc_user",
-    "database.password": "cdc_password",
-    "database.dbname": "commerce_db",
-    "database.server.name": "commerce",
-    "table.include.list": "commerce.products,commerce.users",
-    "publication.name": "commerce_pub",
-    "slot.name": "commerce_slot",
-    "include.schema.changes": "false",
-    "topic.prefix": "cdc",
-    "transforms": "unwrap",
-    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
-    "transforms.unwrap.drop.tombstones": "true",
-    "transforms.unwrap.delete.handling.mode": "rewrite"
-  }
-}```
+    "name": "cdc-postgres-source",
+    "config": {
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+      "tasks.max": "1",
+      "plugin.name": "pgoutput",
+      "database.hostname": "postgres",
+      "database.port": "5432",
+      "database.user": "cdc_user",
+      "database.password": "cdc_password",
+      "database.dbname": "commerce_db",
+      "database.server.name": "cdc",
+      "schema.include.list": "commerce",
+      "table.include.list": "commerce.products,commerce.users",
+      "slot.name": "cdc_slot",
+      "publication.name": "cdc_publication",
+      "snapshot.mode": "initial",
+      "tombstones.on.delete": "false",
+      "include.schema.changes": "false",
+      "topic.prefix": "cdc",
+      "decimal.handling.mode": "double"
+    }
+  }```
 
 ---
 
 ## 3. Configure Kafka Connect S3 Sink
 - Install the S3 sink connector (Confluent or open-source).
+- Example config (`s3-sink.json`):
 
-**Example config (`s3-sink.json`):**
 ```json
 {
-  "name": "s3-sink",
-  "config": {
-    "connector.class": "io.confluent.connect.s3.S3SinkConnector",
-    "tasks.max": "2",
-    "topics": "cdc.commerce.products,cdc.commerce.users",
-    "s3.bucket.name": "my-cdc-bucket",
-    "s3.part.size": 5242880,
-    "flush.size": 1000,
-    "storage.class": "io.confluent.connect.s3.storage.S3Storage",
-    "format.class": "io.confluent.connect.s3.format.parquet.ParquetFormat",
-    "schema.compatibility": "NONE",
-    "partitioner.class": "io.confluent.connect.storage.partitioner.DefaultPartitioner",
-    "topics.dir": "cdc_data",
-    "aws.access.key.id": "<YOUR_KEY>",
-    "aws.secret.access.key": "<YOUR_SECRET>"
-  }
-}```
+    "name": "s3-sink-connector",
+    "config": {
+      "connector.class": "io.confluent.connect.s3.S3SinkConnector",
+      "tasks.max": "1",
+      "topics": "cdc.commerce.products,cdc.commerce.users",
+      "s3.bucket.name": "my-cdc-bucket",
+      "s3.region": "us-east-1",
+      "store.url": "http://minio:9000",
+      "aws.access.key.id": "minioadmin",
+      "aws.secret.access.key": "minioadmin",
+      "s3.signing.method": "AWS4-HMAC-SHA256",
+      "path.style.access": "true",
+      "storage.class": "io.confluent.connect.s3.storage.S3Storage",
+      "format.class": "io.confluent.connect.s3.format.json.JsonFormat",
+      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "key.converter.schemas.enable": "false",
+      "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "value.converter.schemas.enable": "false",
+      "partitioner.class": "io.confluent.connect.storage.partitioner.DailyPartitioner",
+      "path.format": "'year'=YYYY/'month'=MM/'day'=dd",
+      "s3.compression.type": "gzip",
+      "s3.part.size": "5242880",
+      "schema.compatibility": "NONE",
+      "flush.size": "3",
+      "locale": "en-US",
+      "timezone": "UTC"
+    }
+  }```
 
 
-**Resulting S3 paths**
+## Resulting S3 paths
+
 ```plaintext
-s3://my-cdc-bucket/cdc_data/cdc.commerce.products/...
-s3://my-cdc-bucket/cdc_data/cdc.commerce.users/...
+s3://my-cdc-bucket/topics/cdc.commerce.products/...
+s3://my-cdc-bucket/topics/cdc.commerce.users/...
 ```
 ---
 
