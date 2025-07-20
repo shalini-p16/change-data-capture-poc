@@ -51,8 +51,7 @@ Capture every change to the `commerce.products` and `commerce.users` tables in a
     "transforms.unwrap.drop.tombstones": "true",
     "transforms.unwrap.delete.handling.mode": "rewrite"
   }
-}
-```json
+}```
 
 ## 3. Configure Kafka Connect S3 Sink
 - Install S3 sink connector (Confluent or open-source).
@@ -76,8 +75,7 @@ Capture every change to the `commerce.products` and `commerce.users` tables in a
     "aws.access.key.id": "<YOUR_KEY>",
     "aws.secret.access.key": "<YOUR_SECRET>"
   }
-}
-``json
+}```
 
 ## Resulting S3 paths
 ```plaintext
