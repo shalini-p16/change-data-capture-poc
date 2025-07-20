@@ -1,0 +1,267 @@
+volumes:
+  pg_data:
+  minio_data:
+  pgadmin_data:
+  postgres_data:
+
+networks:
+  cdc-network:
+    name: cdc-pipeline-poc_cdc-network
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: cdc_user
+      POSTGRES_PASSWORD: cdc_password
+      POSTGRES_DB: commerce_db
+    ports:
+      - "5432:5432"
+    command: >
+      postgres -c wal_level=logical
+               -c max_replication_slots=10
+               -c max_wal_senders=10
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "cdc_user", "-d", "commerce_db"]
+      interval: 10s
+      retries: 5
+    networks:
+      - cdc-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.5.3
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - '2181:2181'
+    networks:
+      - cdc-network
+
+  kafka:
+    image: confluentinc/cp-enterprise-kafka:5.5.3
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    ports:
+      - '9092:9092'
+    networks:
+      - cdc-network
+
+  schema-registry:
+    container_name: schema-registry
+    image: confluentinc/cp-schema-registry:4.0.3
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: zookeeper:2181
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+    ports:
+      - '8081:8081'
+    networks:
+      - cdc-network
+
+  # kafka-connect:
+  #   image: confluentinc/cp-kafka-connect:5.5.3
+  #   container_name: kafka-connect
+  #   platform: linux/amd64
+  #   depends_on:
+  #     - kafka
+  #   ports:
+  #     - "8083:8083"
+  #   environment:
+  #     CONNECT_BOOTSTRAP_SERVERS: "kafka:9092"
+  #     CONNECT_REST_PORT: 8083
+  #     CONNECT_GROUP_ID: "connect-cluster"
+  #     CONNECT_CONFIG_STORAGE_TOPIC: "connect-configs"
+  #     CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
+  #     CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+  #     CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+  #     CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+  #     CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+  #     CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+  #     CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+  #     CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+  #   volumes:
+  #     - ./connectors:/connectors
+  #   command: >
+  #     bash -c "
+  #     /etc/confluent/docker/run &
+  #     echo 'Waiting for Kafka Connect to start...' && sleep 10 &&
+  #     curl -X POST -H 'Content-Type: application/json' --data @/connectors/postgres-source.json http://localhost:8083/connectors &&
+  #     wait
+  #     "
+  #   networks:
+  #       - cdc-network
+
+  kafka-connect:
+    image: debezium/connect:2.2
+    platform: linux/amd64
+    hostname: connect
+    container_name: kafka-connect
+    depends_on:
+    - kafka
+    - zookeeper
+    ports:
+    - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: "kafka:9092"
+      GROUP_ID: "compose-connect-group"
+      CONFIG_STORAGE_TOPIC: "docker-connect-configs"
+      OFFSET_STORAGE_TOPIC: "docker-connect-offsets"
+      STATUS_STORAGE_TOPIC: "docker-connect-status"
+      OFFSET_FLUSH_INTERVAL_MS: 10000
+      KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
+      CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
+      CONNECT_PLUGIN_PATH: "/kafka/connect,/plugins"
+    volumes:
+      - ./plugins:/plugins
+    networks:
+      - cdc-network
+
+
+  data-generator:
+    build: ./generator
+    container_name: data-generator
+    depends_on:
+      - postgres
+    environment:
+      PYTHONUNBUFFERED: 1
+    command: ["-n", "1000"]
+    networks:
+      - cdc-network
+
+  akhq:
+    image: tchiotludo/akhq:0.24.0
+    platform: linux/amd64
+    container_name: akhq
+    depends_on:
+      - kafka
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka:
+              properties:
+                bootstrap.servers: "kafka:9092"
+    ports:
+      - "8080:8080"
+    networks:
+      - cdc-network
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_DEFAULT_BUCKETS: my-cdc-bucket
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - cdc-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@domain.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8082:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - cdc-network
+
+  init-connectors:
+    image: curlimages/curl:7.85.0
+    container_name: init-connectors
+    depends_on:
+      - kafka-connect
+    volumes:
+      - ./connectors:/connectors
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Kafka Connect to start...';
+        until curl -s http://kafka-connect:8083/connectors; do
+          sleep 5;
+        done;
+        echo 'Creating Postgres connector...';
+        curl -X POST -H 'Content-Type: application/json' \
+          --data @/connectors/postgres-source.json \
+          http://kafka-connect:8083/connectors;
+        echo 'Connector created!';
+      "
+    networks:
+      - cdc-network
+  duckdb-cli:
+    image: duckdb/duckdb:latest
+    container_name: duckdb-cli
+    depends_on:
+      - minio
+    working_dir: /duckdb
+    entrypoint: ["/bin/sh"]
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./duckdb:/duckdb
+
+  duckdb:
+    image: ghcr.io/duckdb/duckdb:latest
+    volumes:
+      - ./duckdb:/duckdb
+    entrypoint: tail -f /dev/null  # Keep container running for queries
+
+  # New: Airflow services
+  airflow-webserver:
+    image: apache/airflow:2.6.1
+    depends_on:
+      - airflow-scheduler
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./orchestration/dags:/opt/airflow/dags
+      - ./duckdb:/opt/airflow/duckdb
+    ports:
+      - "8085:8080"
+    command: webserver
+
+  airflow-scheduler:
+    image: apache/airflow:2.6.1
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./orchestration/dags:/opt/airflow/dags
+      - ./duckdb:/opt/airflow/duckdb
+    command: scheduler
+
+  postgres-airflow:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data

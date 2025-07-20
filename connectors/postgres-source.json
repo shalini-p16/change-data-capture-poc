@@ -1,0 +1,24 @@
+{
+    "name": "cdc-postgres-source",
+    "config": {
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+      "tasks.max": "1",
+      "plugin.name": "pgoutput",
+      "database.hostname": "postgres",
+      "database.port": "5432",
+      "database.user": "cdc_user",
+      "database.password": "cdc_password",
+      "database.dbname": "commerce_db",
+      "database.server.name": "cdc",
+      "schema.include.list": "commerce",
+      "table.include.list": "commerce.products,commerce.users",
+      "slot.name": "cdc_slot",
+      "publication.name": "cdc_publication",
+      "snapshot.mode": "initial",
+      "tombstones.on.delete": "false",
+      "include.schema.changes": "false",
+      "topic.prefix": "cdc",
+      "decimal.handling.mode": "double"
+    }
+  }
+  
