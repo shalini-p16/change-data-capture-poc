@@ -65,7 +65,8 @@ Capture every change to the `commerce.products` and `commerce.users` tables in a
       "topic.prefix": "cdc",
       "decimal.handling.mode": "double"
     }
-  }```
+  }
+  ```
 
 ---
 
@@ -211,7 +212,7 @@ Follow these steps to start the entire data pipeline:
 
 - Can also check these queries:
 
-''sql 
+```sql 
 SELECT * FROM pg_replication_slots WHERE slot_name = 'cdc_slot';
 SELECT * FROM pg_publication;
 SELECT * FROM pg_publication_tables WHERE pubname = 'cdc_publication';
@@ -246,7 +247,7 @@ http://localhost:8083/connectors
 
 - Now let's create a SCD2 for products table from the data we have in minio. Note we are only looking at rows that have updates and deletes in them (see the where id in filter in the below query).
 
-``sql
+```sql
 import duckdb
 
 # Create or connect to DuckDB database file
@@ -310,24 +311,8 @@ ORDER BY
 print("SCD2 transformation completed and saved to products_scd2.duckdb")
 
 conn.close()
-
-
-
-# import duckdb
-# conn = duckdb.connect()
-# conn.execute("INSTALL httpfs")
-# conn.execute("LOAD httpfs")
-# conn.execute("SET s3_region='us-east-1'")
-# conn.execute("SET s3_url_style='path'")
-# conn.execute("SET s3_access_key_id='minioadmin'")
-# conn.execute("SET s3_secret_access_key='minioadmin'")
-# conn.execute("SET s3_endpoint='minio:9000'")  # your MinIO endpoint
-# conn.execute("SET s3_use_ssl=false")
-# result = conn.execute("""
-#     SELECT * FROM read_ndjson_objects('s3://my-cdc-bucket/topics/cdc.commerce.products/year=2025/month=07/day=21/*.json') LIMIT 5
-# """).fetchall()
-# print(result)
 ```
+
 
 
 
