@@ -208,9 +208,9 @@ Follow these steps to start the entire data pipeline:
 
 4. **Configure PgAdmin**
 
-![DB Connection](./docs/db_connection.png)
+![DB Connection](./docs/dbconnection.png)
 
-![DB Table](./docs/db_connection.png)
+![DB Table](./docs/dbrecord.png)
 
 - Can also check these queries:
 
@@ -230,9 +230,9 @@ VALUES (1, 'testuser', 'password123');
     - Register the Debezium Connector:
     ```bash
     curl -X POST -H "Content-Type: application/json" \
---data @connectors/postgres-source.json \
-http://localhost:8083/connectors 
-```
+    --data @connectors/postgres-source.json \
+    http://localhost:8083/connectors 
+    ```
 
 6. **Register the S3 Sink Connector**
 
@@ -245,7 +245,7 @@ http://localhost:8083/connectors
 7.  **Check S3 Data**
 
 8. **Analyze data with duckDB**
-##Access the data in minio via S3 API
+**Access the data in minio via S3 API**
 
 - Now let's create a SCD2 for products table from the data we have in minio. Note we are only looking at rows that have updates and deletes in them (see the where id in filter in the below query).
 
