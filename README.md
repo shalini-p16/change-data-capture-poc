@@ -204,19 +204,19 @@ Follow these steps to start the entire data pipeline:
   - Access PgAdmin: http://localhost:8082
   - Access MinIO: http://localhost:9001
 
-### Kafka
+#### Kafka
 ![Kafka](./docs/kafka.png)
 
-### Minio
+#### Minio
 ![Minio](./docs/minio.png)
 
 
 4. **Configure PgAdmin**
-### Database Connection
+#### Database Connection
 
 ![DB Connection](./docs/dbconnection.png)
 
-### Database Table
+#### Database Table
 
 ![DB Table](./docs/dbrecord.png)
 
@@ -254,7 +254,7 @@ http://localhost:8083/connectors
 
 8. **Analyze data with duckDB**
 
-  ###Access the data in minio via S3 API
+**Access the data in minio via S3 API**
 
 - Now let's create a SCD2 for products table from the data we have in minio. Note we are only looking at rows that have updates and deletes in them (see the where id in filter in the below query).
 
@@ -338,11 +338,25 @@ conn.close()
 ```
 duckdb:////app/analytics/products_scd2.duckdb
 ```
-### Superset Connection to Duckdb
+#### Superset Connection to Duckdb
 ![Superset Connection](./docs/Superset.png)
 
-### Analytics
+#### Analytics
 ![Superset Analytics](./docs/analytics.png)
+
+## Future Work
+
+- **Handling backfills/bulk changes:**  
+  If you are backfilling or changing multiple rows, the Kafka Connect cluster and Kafka cluster will need to scale to handle these changes effectively.
+
+- **Handle schema changes:**  
+  If you are changing the schema, your consumer should be able to handle these changes.  
+  - If you use Kafka, a schema registry with a consumer system can help tremendously.  
+  - The other option is to ensure that your transformation operation can handle abrupt schema changes.
+
+- **Incremental key changes:**  
+  An incremental key change (with the incremental CDC type) will require careful handling or even a re-snapshot of the entire table.
+
 
 
 
