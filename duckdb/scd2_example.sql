@@ -22,3 +22,5 @@ SELECT id,
        NULL AS effective_to,
        TRUE AS is_current
 FROM products;
+
+SELECT * FROM products_scd2;

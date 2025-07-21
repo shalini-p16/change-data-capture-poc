@@ -19,7 +19,6 @@
       "value.converter.schemas.enable": "false",
       "partitioner.class": "io.confluent.connect.storage.partitioner.DailyPartitioner",
       "path.format": "'year'=YYYY/'month'=MM/'day'=dd",
-      "s3.compression.type": "gzip",
       "s3.part.size": "5242880",
       "schema.compatibility": "NONE",
       "flush.size": "3",

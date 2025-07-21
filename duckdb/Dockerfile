@@ -1,13 +1,9 @@
-FROM debezium/connect:1.8
+FROM python:3.10-slim
 
-# Install required tools
-USER root
-RUN apt-get update && apt-get install -y unzip curl tar && rm -rf /var/lib/apt/lists/*
+RUN pip install duckdb
 
-# Install Confluent Hub Client
-RUN curl -sSL https://packages.confluent.io/confluent-hub-client/confluent-hub-client-latest.tar.gz | tar -xz -C /usr/local && ln -s /usr/local/confluent-hub/bin/confluent-hub /usr/local/bin/confluent-hub
+WORKDIR /analytics
 
-# Install S3 Sink Connector into /kafka/connect
-RUN confluent-hub install --no-prompt confluentinc/kafka-connect-s3:10.5.3 --component-dir /kafka/connect
-
-USER kafka
+#CMD ["python", "transform_scd2.py"]
+ENTRYPOINT ["sh", "-c"]
+CMD ["python transform_scd2.py && tail -f /dev/null"]
