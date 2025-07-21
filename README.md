@@ -103,7 +103,8 @@ Capture every change to the `commerce.products` and `commerce.users` tables in a
       "locale": "en-US",
       "timezone": "UTC"
     }
-  }```
+  }
+  ```
 
 
 ## Resulting S3 paths
@@ -192,6 +193,7 @@ Follow these steps to start the entire data pipeline:
     - Run the following command:
     ```bash
     docker-compose up -d
+    ```
 
 3. **Verify Services**
   - Access the Kafka UI (AKHQ): http://localhost:8080
